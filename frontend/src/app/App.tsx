@@ -1890,7 +1890,18 @@ function Footer({ navigate }: { navigate: (p: Page) => void }) {
               <FileText className="w-3 h-3" />
               Mentions légales
             </button>
-            <span>Site réalisé par Douaa Lahmar</span>
+            <span>
+              Site réalisé par{" "}
+              {/* TODO: replace with the real portfolio URL once it's live */}
+              <a
+                href="https://douaa-lahmar.dev"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-accent transition-colors duration-300"
+              >
+                Douaa Lahmar
+              </a>
+            </span>
           </div>
         </div>
       </div>

@@ -213,72 +213,38 @@ Expected: `201` on valid submissions, `400` with an `errors` array on invalid.
 
 ---
 
-## STEP 13 — Deploy free on Render.com
+## STEP 13 — Deploy free on Render.com (backend) + Vercel (frontend)
 
-### 1. Push to GitHub
-Render deploys from a Git repo. You can push the whole project or just the
-backend. The simplest is the whole repo, telling Render the backend is in a
-subfolder (step 3, *Root Directory*).
+The repo root has a `render.yaml` **Blueprint** that pre-fills most of this
+for you. See the top-level `README.md` for the full step-by-step (GitHub →
+Render → Vercel → connect the two) — this section covers the backend-specific
+details only.
 
-```powershell
-# from the project root
-git init
-git add .
-git commit -m "Add Express backend for Dr Zouid site"
-git branch -M main
-git remote add origin https://github.com/<you>/drzouid-website.git
-git push -u origin main
-```
-> `backend/.gitignore` already excludes `node_modules` and `.env`, so your
-> secrets are **not** pushed.
+### Environment variables to set in Render
+| Key                | Value                                                          |
+|--------------------|-----------------------------------------------------------------|
+| `MONGODB_URI`      | your full Atlas SRV string (with the real password)             |
+| `EMAIL_USER`       | your Gmail address                                               |
+| `EMAIL_PASS`       | your 16-char Gmail App Password                                 |
+| `EMAIL_TO`         | `cabinet.drzouid@gmail.com`                                      |
+| `JWT_SECRET`       | a long random string (signs admin login tokens)                 |
+| `JWT_EXPIRES_IN`   | `7d`                                                             |
+| `ADMIN_NAME`, `ADMIN_EMAIL`, `ADMIN_PASSWORD` | the admin account seed values         |
+| `ALLOWED_ORIGINS`  | `http://localhost:5173,https://<your-vercel-url>`                |
+| `NODE_ENV`         | `production`                                                     |
 
-### 2. Create the Web Service
-- Go to <https://render.com> → sign in with GitHub → **New +** → **Web Service**.
-- Select your repository.
+Root Directory: `backend` · Build: `npm install` · Start: `node server.js`.
 
-### 3. Build & start settings
-| Field             | Value              |
-|-------------------|--------------------|
-| Root Directory    | `backend`          |
-| Runtime           | Node               |
-| Build Command     | `npm install`      |
-| Start Command     | `npm start`        |
-| Instance Type     | Free               |
-
-### 4. Environment variables
-In **Environment** → *Add Environment Variable*, add each key from your `.env`:
-
-| Key           | Value                                                        |
-|---------------|--------------------------------------------------------------|
-| `MONGODB_URI` | your full Atlas SRV string (with the real password)          |
-| `EMAIL_USER`  | your Gmail address                                           |
-| `EMAIL_PASS`  | your 16-char Gmail App Password                             |
-| `EMAIL_TO`    | `cabinet.drzouid@gmail.com`                                  |
-| `CLIENT_URL`  | your deployed frontend URL (e.g. `https://drzouid.netlify.app`) |
-| `NODE_ENV`    | `production`                                                 |
-| `JWT_SECRET`  | a long random string (signs admin login tokens)             |
-| `JWT_EXPIRES_IN` | `7d`                                                     |
-
-> Do **not** set `PORT` — Render provides it automatically and `server.js`
-> reads `process.env.PORT`.
-> `CLIENT_URL` accepts a comma-separated list, so you can allow both your live
-> site and `http://localhost:5173` while testing.
-
-### 5. Deploy → get the URL
-Click **Create Web Service**. After the build you'll get a URL like
-`https://drzouid-api.onrender.com`. Verify it:
-`https://drzouid-api.onrender.com/api/health` → `{ "status": "OK" }`.
+Verify once live: `https://<your-render-url>/api/health` → `{ "status": "OK" }`.
 
 > Free Render services sleep after ~15 min idle; the first request then takes
-> ~30–50 s to wake. Fine for a showcase site.
+> ~30–50 s to wake (see the root README for a free UptimeRobot workaround).
 
-### 6. Point the frontend at production
-When you deploy the frontend (Netlify / Vercel / Render Static Site), set a
-build-time env var:
-
+### Point the frontend at production
+On Vercel, set a build-time env var:
 ```
-VITE_API_URL=https://drzouid-api.onrender.com
+VITE_API_URL=https://<your-render-url>
 ```
-
-`src/app/lib/api.ts` uses it automatically. Rebuild the frontend, then update
-`CLIENT_URL` on Render to the frontend's real URL so CORS allows it.
+`src/app/lib/api.ts` and `src/admin/api/adminApi.ts` read it automatically.
+Then update `ALLOWED_ORIGINS` on Render to include the real Vercel URL so
+CORS allows it.

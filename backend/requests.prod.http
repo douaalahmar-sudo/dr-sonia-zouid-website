@@ -1,0 +1,65 @@
+### Cabinet Dr Sonia Zouid — PRODUCTION endpoint tests
+### Use this after deploying the backend to Render.
+### Install the "REST Client" VS Code extension, then click "Send Request".
+
+### 1) Fill in your real Render URL here:
+@baseUrl = https://dr-zouid-api.onrender.com
+
+### 2) Health check → 200 { status: "OK" }
+### (First hit after idle can take ~30-50s on Render's free tier — that's normal.)
+GET {{baseUrl}}/api/health
+
+### ─── PUBLIC form endpoints ─────────────────────────────────────────────
+
+### 3) Create a test appointment → 201 + should trigger 2 emails
+POST {{baseUrl}}/api/appointments
+Content-Type: application/json
+
+{
+  "fullName": "Test Deploiement",
+  "phone": "20123456",
+  "email": "amine.benali@example.tn",
+  "motif": "Consultation générale",
+  "preferredDate": "2026-08-01",
+  "preferredTime": "10:00",
+  "message": "Ceci est un test de déploiement en production."
+}
+
+### 4) Create a test contact message → 201 + should trigger 2 emails
+POST {{baseUrl}}/api/contact
+Content-Type: application/json
+
+{
+  "fullName": "Test Deploiement",
+  "email": "amine.benali@example.tn",
+  "phone": "22334455",
+  "message": "Ceci est un test de déploiement en production."
+}
+
+### 5) List appointments WITHOUT a token → must be 401 (protected correctly)
+GET {{baseUrl}}/api/appointments
+
+### ─── ADMIN: log in, then reuse the token ────────────────────────────────
+
+# @name login
+### 6) Login → 200 { token, admin }
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "admin@drzouid.tn", "password": "REPLACE_WITH_REAL_PASSWORD" }
+
+### Token from the login response above, reused below:
+@token = {{login.response.body.token}}
+
+### 7) Who am I → 200
+GET {{baseUrl}}/api/auth/me
+Authorization: Bearer {{token}}
+
+### 8) List appointments (admin, with token) → 200, should include the test
+###    appointment created in step 3
+GET {{baseUrl}}/api/appointments
+Authorization: Bearer {{token}}
+
+### 9) List messages (admin) → 200
+GET {{baseUrl}}/api/contact
+Authorization: Bearer {{token}}
