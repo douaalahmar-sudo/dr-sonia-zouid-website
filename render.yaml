@@ -1,0 +1,41 @@
+# Render Blueprint — lets Render pre-fill the Web Service config below
+# instead of typing it in by hand. In the Render dashboard:
+#   New + → Blueprint → select this repo → Render reads this file.
+# Secrets are marked `sync: false` so Render prompts you to type the real
+# value during setup instead of storing it in this repo.
+services:
+  - type: web
+    name: dr-zouid-api
+    runtime: node
+    plan: free
+    region: frankfurt
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: ADMIN_NAME
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: EMAIL_USER
+        sync: false
+      - key: EMAIL_PASS
+        sync: false
+      - key: EMAIL_TO
+        sync: false
+      - key: ALLOWED_ORIGINS
+        value: http://localhost:5173
+        # After the frontend is deployed on Vercel, update this to also
+        # include the real Vercel URL, comma-separated.

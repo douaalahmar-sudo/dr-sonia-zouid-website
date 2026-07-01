@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+
+# Build output (none today, kept for parity/safety)
+dist/
+
+# Environment variables — NEVER commit real secrets
+.env
+.env.local
+.env.*.local
+
+# Vercel CLI local state (not used here, kept for parity/safety)
+.vercel/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

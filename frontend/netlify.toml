@@ -1,0 +1,20 @@
+# Netlify deploy config for the frontend.
+#
+# Because the frontend lives in a subfolder of the repo, set the site's
+# "Base directory" to `frontend` in the Netlify UI (Site settings → Build &
+# deploy → Build settings). Netlify then reads this file and the paths below
+# are relative to that base directory.
+#
+# Remember to add an environment variable in the Netlify UI:
+#   VITE_API_URL = https://your-backend.onrender.com
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# SPA fallback: the app is client-side routed, so every path must serve
+# index.html (otherwise refreshing a sub-route 404s).
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

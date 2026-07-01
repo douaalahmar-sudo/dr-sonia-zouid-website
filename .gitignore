@@ -1,0 +1,7 @@
+# Each of frontend/ and backend/ has its own .gitignore for its
+# node_modules/, .env, dist/, .vercel/. This root file only catches
+# stray OS/editor junk that could land outside those folders.
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

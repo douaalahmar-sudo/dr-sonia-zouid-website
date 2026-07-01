@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 28">
+  <!-- Same mark as src/shared/Logo.tsx: a Snellen eye-chart "E" (shorter
+       middle arm, even 4px gaps) in a rounded navy badge — keep both in
+       sync if edited. -->
+  <rect x="0" y="0" width="28" height="28" rx="7" fill="#1B3A5C"/>
+  <rect x="4" y="4" width="4" height="20" fill="#ffffff"/>
+  <rect x="4" y="4" width="16" height="4" fill="#ffffff"/>
+  <rect x="4" y="12" width="11" height="4" fill="#ffffff"/>
+  <rect x="4" y="20" width="16" height="4" fill="#ffffff"/>
+</svg>

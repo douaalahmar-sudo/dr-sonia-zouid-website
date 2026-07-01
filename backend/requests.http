@@ -1,0 +1,85 @@
+### Cabinet Dr Sonia Zouid — API tests
+### Install the "REST Client" VS Code extension (humao.rest-client),
+### then click "Send Request" above each block below.
+### Start the server first:  npm run dev
+### Create the admin first:   node scripts/createAdmin.js
+
+@baseUrl = http://localhost:5000
+
+### 1) Health check → 200 { status: "OK" }
+GET {{baseUrl}}/api/health
+
+### ─── PUBLIC form endpoints ─────────────────────────────────────────────
+
+### 2) Create an appointment (valid) → 201
+POST {{baseUrl}}/api/appointments
+Content-Type: application/json
+
+{
+  "fullName": "Amine Ben Ali",
+  "phone": "20123456",
+  "email": "amine.benali@example.tn",
+  "motif": "Dépistage glaucome",
+  "preferredDate": "2026-07-15",
+  "preferredTime": "10:00",
+  "message": "Je préfère une consultation en matinée."
+}
+
+### 3) Invalid appointment (bad phone + bad motif) → 400
+POST {{baseUrl}}/api/appointments
+Content-Type: application/json
+
+{ "fullName": "X", "phone": "12", "motif": "Inexistant", "preferredDate": "" }
+
+### 4) Create a contact message (valid) → 201
+POST {{baseUrl}}/api/contact
+Content-Type: application/json
+
+{
+  "fullName": "Sonia Gharbi",
+  "email": "sonia.gharbi@example.tn",
+  "phone": "22334455",
+  "message": "Bonjour, quels sont vos horaires le samedi ?"
+}
+
+### ─── ADMIN: log in first (creds come from .env) ────────────────────────
+
+# @name login
+### 5) Login → 200 { token, admin }
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "admin@drzouid.tn", "password": "ChangeMe123!" }
+
+### The token from the login response is reused below:
+@token = {{login.response.body.token}}
+
+### 6) Who am I → 200
+GET {{baseUrl}}/api/auth/me
+Authorization: Bearer {{token}}
+
+### 7) List appointments (admin) → 200
+GET {{baseUrl}}/api/appointments
+Authorization: Bearer {{token}}
+
+### 7b) List appointments WITHOUT token → 401
+GET {{baseUrl}}/api/appointments
+
+### 8) Update an appointment status → 200  (paste a real id)
+PATCH {{baseUrl}}/api/appointments/PUT_AN_ID_HERE
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "status": "done" }
+
+### 9) Delete an appointment → 200  (paste a real id)
+DELETE {{baseUrl}}/api/appointments/PUT_AN_ID_HERE
+Authorization: Bearer {{token}}
+
+### 10) List messages (admin) → 200
+GET {{baseUrl}}/api/contact
+Authorization: Bearer {{token}}
+
+### 11) Delete a message → 200  (paste a real id)
+DELETE {{baseUrl}}/api/contact/PUT_AN_ID_HERE
+Authorization: Bearer {{token}}
