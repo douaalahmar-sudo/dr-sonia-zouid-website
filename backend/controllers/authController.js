@@ -1,5 +1,5 @@
 const Admin = require('../models/Admin');
-const { signToken } = require('../middleware/auth');
+const { signToken, cookieOptions, TOKEN_COOKIE } = require('../middleware/auth');
 
 // Shape an admin for safe client output (never include the password).
 function publicAdmin(a) {
@@ -8,7 +8,8 @@ function publicAdmin(a) {
 
 /**
  * POST /api/auth/login   (public)
- * Body: { email, password } → { token, admin } on success.
+ * Body: { email, password }. On success, sets the JWT as an httpOnly cookie
+ * and returns { success, admin } (the token is never exposed to JS).
  * Uses a single generic error so we don't reveal whether the email exists.
  */
 async function login(req, res, next) {
@@ -21,7 +22,8 @@ async function login(req, res, next) {
     }
 
     const token = signToken(admin);
-    return res.status(200).json({ success: true, token, admin: publicAdmin(admin) });
+    res.cookie(TOKEN_COOKIE, token, cookieOptions({ withMaxAge: true }));
+    return res.status(200).json({ success: true, admin: publicAdmin(admin) });
   } catch (err) {
     next(err);
   }
@@ -35,4 +37,14 @@ async function getMe(req, res) {
   return res.status(200).json({ success: true, admin: publicAdmin(req.admin) });
 }
 
-module.exports = { login, getMe };
+/**
+ * POST /api/auth/logout   (protected)
+ * Clears the auth cookie. clearCookie must match the attributes used to set it
+ * (minus maxAge) or the browser won't remove it.
+ */
+async function logout(req, res) {
+  res.clearCookie(TOKEN_COOKIE, cookieOptions());
+  return res.status(200).json({ success: true });
+}
+
+module.exports = { login, getMe, logout };

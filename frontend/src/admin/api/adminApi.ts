@@ -1,15 +1,12 @@
 // ─── Admin API client ───────────────────────────────────────────────────────
-// A thin fetch wrapper that automatically attaches the admin JWT and, on a 401
-// from a protected route, clears the token and redirects to /admin/login.
+// A thin fetch wrapper. Auth is carried by an httpOnly "token" cookie set by
+// the backend on login, so every request is sent with credentials included and
+// there is no token for JS to read or attach. On a 401 from a protected route,
+// the browser is redirected to /admin/login (the cookie is server-managed).
 //
 // Base URL: relative in dev (Vite proxies /api → :5000); VITE_API_URL in prod.
 
 const API_BASE = (import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "");
-const TOKEN_KEY = "adminToken";
-
-export const getToken = () => localStorage.getItem(TOKEN_KEY);
-export const setToken = (t: string) => localStorage.setItem(TOKEN_KEY, t);
-export const clearToken = () => localStorage.removeItem(TOKEN_KEY);
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 export type Admin = { id: string; name: string; email: string; createdAt: string };
@@ -47,15 +44,14 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const token = getToken();
-
   let res: Response;
   try {
     res = await fetch(`${API_BASE}${path}`, {
       ...options,
+      // Send the httpOnly auth cookie on every request (cross-origin in prod).
+      credentials: "include",
       headers: {
         "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...(options.headers || {}),
       },
     });
@@ -63,13 +59,10 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     throw new ApiError("Impossible de contacter le serveur.", 0);
   }
 
-  // Auto sign-out on an expired/invalid token for a protected request.
-  // (The login call has no token, so a 401 there just shows the error.)
-  if (res.status === 401 && token) {
-    clearToken();
-    if (!window.location.pathname.endsWith("/admin/login")) {
-      window.location.assign("/admin/login");
-    }
+  // Auto sign-out on an expired/invalid session for a protected request. On the
+  // login page we fall through so the real error (e.g. bad credentials) shows.
+  if (res.status === 401 && !window.location.pathname.endsWith("/admin/login")) {
+    window.location.assign("/admin/login");
     throw new ApiError("Session expirée.", 401);
   }
 
@@ -85,14 +78,19 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 // ─── Auth ───────────────────────────────────────────────────────────────────
+// login sets the httpOnly cookie server-side; the response carries only the
+// admin profile (no token).
 export function login(email: string, password: string) {
-  return request<{ token: string; admin: Admin }>("/api/auth/login", {
+  return request<{ admin: Admin }>("/api/auth/login", {
     method: "POST",
     body: JSON.stringify({ email, password }),
   });
 }
 export function getMe() {
   return request<{ admin: Admin }>("/api/auth/me");
+}
+export function logout() {
+  return request<{ success: boolean }>("/api/auth/logout", { method: "POST" });
 }
 
 // ─── Appointments ─────────────────────────────────────────────────────────

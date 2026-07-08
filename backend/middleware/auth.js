@@ -1,9 +1,14 @@
 const jwt = require('jsonwebtoken');
+const ms = require('ms');
 const Admin = require('../models/Admin');
 
+// Name of the httpOnly cookie that carries the admin JWT.
+const TOKEN_COOKIE = 'token';
+
 /**
- * Sign a login token for an admin. Returned to the client on login; the client
- * sends it back as "Authorization: Bearer <token>" on protected requests.
+ * Sign a login token for an admin. The login controller sets this as an
+ * httpOnly "token" cookie; the browser sends it back automatically on
+ * protected requests (no Authorization header involved).
  */
 function signToken(admin) {
   return jwt.sign(
@@ -14,13 +19,28 @@ function signToken(admin) {
 }
 
 /**
- * Protect a route: require a valid admin JWT. On success, attaches the admin
- * document (without the password) to req.admin.
+ * Options for the auth cookie. Deployed cross-origin (Vercel ⇄ Render), so the
+ * cookie must be SameSite=None + Secure to be sent on cross-site requests.
+ * `withMaxAge` adds the lifetime (login); clearCookie must omit it and match
+ * the rest of the attributes.
+ */
+function cookieOptions({ withMaxAge = false } = {}) {
+  const opts = { httpOnly: true, secure: true, sameSite: 'none' };
+  if (withMaxAge) {
+    // Keep the cookie lifetime in step with the JWT expiry. `ms` parses the
+    // same JWT_EXPIRES_IN string ('7d', '12h', …) that jsonwebtoken uses.
+    opts.maxAge = ms(process.env.JWT_EXPIRES_IN || '7d');
+  }
+  return opts;
+}
+
+/**
+ * Protect a route: require a valid admin JWT read from the httpOnly cookie.
+ * On success, attaches the admin document (without the password) to req.admin.
  */
 async function protect(req, res, next) {
   try {
-    const header = req.get('authorization') || '';
-    const token = header.startsWith('Bearer ') ? header.slice(7).trim() : '';
+    const token = req.cookies && req.cookies[TOKEN_COOKIE];
 
     if (!token) {
       return res.status(401).json({ success: false, message: 'Authentification requise.' });
@@ -40,4 +60,4 @@ async function protect(req, res, next) {
   }
 }
 
-module.exports = { signToken, protect };
+module.exports = { signToken, protect, cookieOptions, TOKEN_COOKIE };

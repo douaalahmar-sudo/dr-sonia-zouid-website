@@ -14,39 +14,36 @@ type AuthState = {
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
 
 /**
- * Wraps the admin app. On mount, if a token exists in localStorage it is
- * validated against GET /api/auth/me; an invalid/expired token is cleared.
+ * Wraps the admin app. On mount we always ask GET /api/auth/me: the auth token
+ * lives in an httpOnly cookie the browser sends automatically, so there is no
+ * client-readable token to check for first. A failure means "not logged in".
  */
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [admin, setAdmin] = useState<Admin | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!api.getToken()) {
-      setIsLoading(false);
-      return;
-    }
     api
       .getMe()
       .then(({ admin }) => setAdmin(admin))
-      .catch(() => api.clearToken())
+      .catch(() => setAdmin(null))
       .finally(() => setIsLoading(false));
   }, []);
 
   const login = async (email: string, password: string) => {
-    const { token, admin } = await api.login(email, password);
-    api.setToken(token);
+    const { admin } = await api.login(email, password);
     setAdmin(admin);
   };
 
-  const logout = () => {
-    api.clearToken();
+  const logout = async () => {
+    // Clear the cookie server-side first, then drop local state.
+    await api.logout().catch(() => {});
     setAdmin(null);
   };
 

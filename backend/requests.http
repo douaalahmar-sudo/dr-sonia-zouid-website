@@ -43,43 +43,43 @@ Content-Type: application/json
 }
 
 ### ─── ADMIN: log in first (creds come from .env) ────────────────────────
+### Auth is now cookie-based: login sets an httpOnly "token" cookie instead
+### of returning a token in the body. The REST Client extension keeps a cookie
+### jar per host, so once you send the login request below the cookie is stored
+### and automatically attached to the protected requests that follow — no
+### Authorization header needed. (Send the login request again if the cookie
+### expires or you restart the server.)
 
-# @name login
-### 5) Login → 200 { token, admin }
+### 5) Login → 200 { success, admin } + Set-Cookie: token=…
 POST {{baseUrl}}/api/auth/login
 Content-Type: application/json
 
 { "email": "admin@drzouid.tn", "password": "ChangeMe123!" }
 
-### The token from the login response is reused below:
-@token = {{login.response.body.token}}
-
-### 6) Who am I → 200
+### 6) Who am I → 200  (uses the stored cookie)
 GET {{baseUrl}}/api/auth/me
-Authorization: Bearer {{token}}
 
-### 7) List appointments (admin) → 200
+### 7) List appointments (admin) → 200  (uses the stored cookie)
 GET {{baseUrl}}/api/appointments
-Authorization: Bearer {{token}}
 
-### 7b) List appointments WITHOUT token → 401
+### 7b) List appointments WITHOUT the cookie → 401
+### (Run this in a fresh REST Client cookie jar, or after step 12 logout.)
 GET {{baseUrl}}/api/appointments
 
 ### 8) Update an appointment status → 200  (paste a real id)
 PATCH {{baseUrl}}/api/appointments/PUT_AN_ID_HERE
-Authorization: Bearer {{token}}
 Content-Type: application/json
 
 { "status": "done" }
 
 ### 9) Delete an appointment → 200  (paste a real id)
 DELETE {{baseUrl}}/api/appointments/PUT_AN_ID_HERE
-Authorization: Bearer {{token}}
 
 ### 10) List messages (admin) → 200
 GET {{baseUrl}}/api/contact
-Authorization: Bearer {{token}}
 
 ### 11) Delete a message → 200  (paste a real id)
 DELETE {{baseUrl}}/api/contact/PUT_AN_ID_HERE
-Authorization: Bearer {{token}}
+
+### 12) Logout → 200 { success: true } + clears the cookie
+POST {{baseUrl}}/api/auth/logout

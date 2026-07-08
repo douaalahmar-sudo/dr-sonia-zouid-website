@@ -1,9 +1,21 @@
 const mongoose = require('mongoose');
+const dns = require('dns');
+
+const RETRY_DELAY_MS = 5000;
+
+// Node's DNS resolver (c-ares) queries the OS-configured nameserver directly
+// over raw UDP, which some local/VPN/router resolvers refuse (ECONNREFUSED)
+// even though the OS resolver itself handles the same SRV lookup fine — this
+// breaks mongodb+srv:// connection strings, which depend on an SRV lookup.
+// Pointing Node explicitly at public DNS resolvers sidesteps that.
+dns.setServers(['8.8.8.8', '1.1.1.1']);
 
 /**
  * Connect to MongoDB Atlas using the connection string in MONGODB_URI.
- * Logs a clear success/failure message and exits the process on failure
- * (a backend with no database is not useful to keep alive).
+ * On failure, logs the error and retries after a delay instead of killing the
+ * process — a transient DNS/network blip (common on Render's free tier)
+ * should not take the whole API down with a hard 502. Requests that need the
+ * DB will simply fail until a retry succeeds; /api/health stays up either way.
  */
 async function connectDB() {
   try {
@@ -12,9 +24,8 @@ async function connectDB() {
     return conn;
   } catch (err) {
     console.error('❌ MongoDB connection error:', err.message);
-    // Exit so the problem is visible immediately rather than failing on the
-    // first request. Render/nodemon will surface the crash in the logs.
-    process.exit(1);
+    console.error(`   Retrying in ${RETRY_DELAY_MS / 1000}s...`);
+    setTimeout(connectDB, RETRY_DELAY_MS);
   }
 }
 

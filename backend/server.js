@@ -4,6 +4,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const cookieParser = require('cookie-parser');
 
 const connectDB = require('./config/db');
 const { globalLimiter } = require('./middleware/rateLimiters');
@@ -41,11 +42,15 @@ app.use(
       if (allowedOrigins.includes(origin)) return callback(null, true);
       return callback(new Error(`CORS: origin ${origin} not allowed`));
     },
+    // Auth is cookie-based (httpOnly "token" cookie), so the browser must be
+    // allowed to send credentials to the whitelisted cross-origin frontend.
+    credentials: true,
     methods: ['GET', 'POST'],
   })
 );
 
 app.use(express.json({ limit: '10kb' })); // parse JSON bodies (small — form data only)
+app.use(cookieParser()); // populate req.cookies (auth token lives here)
 
 // ─── Rate limiting ──────────────────────────────────────────────────────────
 // Generous global safety net. Stricter per-route limits (public form spam,

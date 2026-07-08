@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 
-const { login, getMe } = require('../controllers/authController');
+const { login, getMe, logout } = require('../controllers/authController');
 const { protect } = require('../middleware/auth');
 const { validateLogin } = require('../middleware/validate');
 const { loginLimiter } = require('../middleware/rateLimiters');
@@ -11,5 +11,8 @@ router.post('/login', loginLimiter, validateLogin, login);
 
 // GET /api/auth/me — current logged-in admin (protected)
 router.get('/me', protect, getMe);
+
+// POST /api/auth/logout — clear the auth cookie (protected)
+router.post('/logout', protect, logout);
 
 module.exports = router;

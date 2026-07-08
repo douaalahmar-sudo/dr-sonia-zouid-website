@@ -39,27 +39,29 @@ Content-Type: application/json
 ### 5) List appointments WITHOUT a token → must be 401 (protected correctly)
 GET {{baseUrl}}/api/appointments
 
-### ─── ADMIN: log in, then reuse the token ────────────────────────────────
+### ─── ADMIN: log in, then reuse the cookie ────────────────────────────────
+### Auth is now cookie-based: login sets an httpOnly "token" cookie instead of
+### returning a token in the body. The REST Client extension keeps a cookie jar
+### per host, so the cookie set by step 6 is automatically attached to the
+### protected requests below — no Authorization header needed.
+### NOTE: the cookie is Secure + SameSite=None, so it's only sent over HTTPS
+### (fine here — the Render URL is https).
 
-# @name login
-### 6) Login → 200 { token, admin }
+### 6) Login → 200 { success, admin } + Set-Cookie: token=…
 POST {{baseUrl}}/api/auth/login
 Content-Type: application/json
 
 { "email": "admin@drzouid.tn", "password": "REPLACE_WITH_REAL_PASSWORD" }
 
-### Token from the login response above, reused below:
-@token = {{login.response.body.token}}
-
-### 7) Who am I → 200
+### 7) Who am I → 200  (uses the stored cookie)
 GET {{baseUrl}}/api/auth/me
-Authorization: Bearer {{token}}
 
-### 8) List appointments (admin, with token) → 200, should include the test
-###    appointment created in step 3
+### 8) List appointments (admin) → 200, should include the test appointment
+###    created in step 3  (uses the stored cookie)
 GET {{baseUrl}}/api/appointments
-Authorization: Bearer {{token}}
 
-### 9) List messages (admin) → 200
+### 9) List messages (admin) → 200  (uses the stored cookie)
 GET {{baseUrl}}/api/contact
-Authorization: Bearer {{token}}
+
+### 10) Logout → 200 { success: true } + clears the cookie
+POST {{baseUrl}}/api/auth/logout
